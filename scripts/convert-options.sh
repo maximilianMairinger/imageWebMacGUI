@@ -11,15 +11,15 @@ if [[ "$BINARY" != "npx" ]]; then
 fi
 
 # Read saved defaults
-SAVED_ALGOS=$(defaults read com.imageweb.prefs algorithms 2>/dev/null || echo "webp,avif")
-SAVED_RESS=$(defaults read com.imageweb.prefs resolutions 2>/dev/null || echo "FHD")
+SAVED_ALGOS=$(defaults read com.imageweb.prefs algorithms 2>/dev/null || echo "webp")
+SAVED_RESS=$(defaults read com.imageweb.prefs resolutions 2>/dev/null || echo "QHD")
 
 # Returns "true" if $1 appears as a word in comma-separated list $2
 checked() {
     echo "$2" | tr ',' '\n' | grep -qx "$1" && echo "true" || echo "false"
 }
 
-# Locate SwiftDialog
+# Locate SwiftDialog CLI binary
 DIALOG_CMD=""
 for p in "/usr/local/bin/dialog" "/opt/homebrew/bin/dialog"; do
     [[ -x "$p" ]] && DIALOG_CMD="$p" && break
@@ -27,6 +27,29 @@ done
 if [[ -z "$DIALOG_CMD" ]]; then
     osascript -e 'display alert "Image Web" message "SwiftDialog not installed.\nRun: brew install swiftdialog" as warning'
     exit 1
+fi
+
+# Find Dialog.app bundle — needed so `open` launches it via LaunchServices
+# (running the bare binary from Automator's background context exits with code 5:
+#  no window server access; `open` fixes this by going through the GUI session)
+DIALOG_APP=""
+# First: resolve the symlink from the CLI binary to find the .app bundle
+_real=$(readlink "$DIALOG_CMD" 2>/dev/null || echo "")
+if [[ -n "$_real" ]]; then
+    _app=$(echo "$_real" | grep -o '.*\.app')
+    [[ -d "$_app" ]] && DIALOG_APP="$_app"
+fi
+# Fallback: common install locations
+if [[ -z "$DIALOG_APP" ]]; then
+    for _p in "/Library/Application Support/Dialog/Dialog.app" \
+              "/Applications/dialog.app" "/Applications/Dialog.app" \
+              "/Applications/SwiftDialog.app" "$HOME/Applications/dialog.app"; do
+        [[ -d "$_p" ]] && DIALOG_APP="$_p" && break
+    done
+fi
+# Last resort: Spotlight
+if [[ -z "$DIALOG_APP" ]]; then
+    DIALOG_APP=$(mdfind "kMDItemCFBundleIdentifier == 'au.swiftdialog.dialog'" 2>/dev/null | grep -m1 '\.app$')
 fi
 
 # Build dialog JSON
@@ -63,12 +86,39 @@ cat > "$TMPFILE" << EOF
 }
 EOF
 
-RESULT=$("$DIALOG_CMD" --jsonfile "$TMPFILE" 2>/dev/null)
-EXIT_CODE=$?
+OUTFILE=$(mktemp /tmp/imageweb-out-XXXXX.json)
+
+if [[ -n "$DIALOG_APP" ]]; then
+    # Launch via open so macOS gives it a proper GUI/window-server session
+    open -Wn "$DIALOG_APP" --args \
+        --jsonfile "$TMPFILE" --jsonoutputfile "$OUTFILE" \
+        2>/tmp/imageweb-dialog-err.txt
+    EXIT_CODE=$?
+else
+    # Fallback: direct binary (may fail with exit 5 if window server unavailable)
+    "$DIALOG_CMD" --jsonfile "$TMPFILE" --jsonoutputfile "$OUTFILE" \
+        2>/tmp/imageweb-dialog-err.txt
+    EXIT_CODE=$?
+fi
 rm -f "$TMPFILE"
 
-# Exit code 2 = Cancel
-[[ $EXIT_CODE -eq 2 || $EXIT_CODE -eq 10 ]] && exit 0
+RESULT=$(cat "$OUTFILE" 2>/dev/null)
+rm -f "$OUTFILE"
+
+# Exit code 2/10 = Cancel / Esc
+[[ $EXIT_CODE -eq 2 || $EXIT_CODE -eq 10 ]] && { rm -f /tmp/imageweb-dialog-err.txt; exit 0; }
+
+# Guard: empty result also means cancel/close
+[[ -z "$RESULT" ]] && { rm -f /tmp/imageweb-dialog-err.txt; exit 0; }
+
+# Any other non-zero exit = SwiftDialog failed — surface the error
+if [[ $EXIT_CODE -ne 0 ]]; then
+    ERR=$(cat /tmp/imageweb-dialog-err.txt 2>/dev/null | head -3)
+    rm -f /tmp/imageweb-dialog-err.txt
+    osascript -e "display alert \"Image Web: dialog failed (exit $EXIT_CODE)\" message \"$ERR\" as warning"
+    exit 1
+fi
+rm -f /tmp/imageweb-dialog-err.txt
 
 # Parse JSON: map labels back to identifiers
 PARSE_SCRIPT='
@@ -111,7 +161,7 @@ print(",".join(ress) if ress else "FHD")
 print("true" if save else "false")
 '
 
-PARSED=$(echo "$RESULT" | python3 -c "$PARSE_SCRIPT" 2>/dev/null)
+PARSED=$(echo "$RESULT" | python3 -c "$PARSE_SCRIPT")
 ALGOS=$(echo "$PARSED" | sed -n '1p')
 RESS=$(echo "$PARSED"  | sed -n '2p')
 SAVE=$(echo "$PARSED"  | sed -n '3p')

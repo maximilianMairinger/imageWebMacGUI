@@ -9,8 +9,8 @@ BINARY=$(bash "$SCRIPT_DIR/find-image-web.sh")
 if [[ "$BINARY" != "npx" ]]; then
     export PATH="$(dirname "$BINARY"):$PATH"
 fi
-ALGORITHMS=$(defaults read com.imageweb.prefs algorithms 2>/dev/null || echo "webp,avif")
-RESOLUTIONS=$(defaults read com.imageweb.prefs resolutions 2>/dev/null || echo "FHD")
+ALGORITHMS=$(defaults read com.imageweb.prefs algorithms 2>/dev/null || echo "webp")
+RESOLUTIONS=$(defaults read com.imageweb.prefs resolutions 2>/dev/null || echo "QHD")
 
 run_convert() {
     local file="$1"

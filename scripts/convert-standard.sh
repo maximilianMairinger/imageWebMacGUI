@@ -4,14 +4,20 @@
 
 SCRIPT_DIR="$HOME/.local/share/imageweb"
 BINARY=$(bash "$SCRIPT_DIR/find-image-web.sh")
+
+# Ensure node is in PATH (nvm installs don't appear in Automator's minimal env)
+if [[ "$BINARY" != "npx" ]]; then
+    export PATH="$(dirname "$BINARY"):$PATH"
+fi
 ALGORITHMS=$(defaults read com.imageweb.prefs algorithms 2>/dev/null || echo "webp,avif")
 RESOLUTIONS=$(defaults read com.imageweb.prefs resolutions 2>/dev/null || echo "FHD")
 
 run_convert() {
     local file="$1"
     [[ -z "$file" ]] && return
-    local ext="${file##*.}"
-    case "${ext,,}" in
+    local ext
+    ext=$(echo "${file##*.}" | tr '[:upper:]' '[:lower:]')
+    case "$ext" in
         png|jpg|jpeg|webp|avif|gif|tiff) ;;
         *) return ;;
     esac

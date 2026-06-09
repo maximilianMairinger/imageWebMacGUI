@@ -5,6 +5,11 @@
 SCRIPT_DIR="$HOME/.local/share/imageweb"
 BINARY=$(bash "$SCRIPT_DIR/find-image-web.sh")
 
+# Ensure node is in PATH (nvm installs are absent from Automator minimal env)
+if [[ "$BINARY" != "npx" ]]; then
+    export PATH="$(dirname "$BINARY"):$PATH"
+fi
+
 # Read saved defaults
 SAVED_ALGOS=$(defaults read com.imageweb.prefs algorithms 2>/dev/null || echo "webp,avif")
 SAVED_RESS=$(defaults read com.imageweb.prefs resolutions 2>/dev/null || echo "FHD")
@@ -29,28 +34,31 @@ TMPFILE=$(mktemp /tmp/imageweb-dialog-XXXXX.json)
 cat > "$TMPFILE" << EOF
 {
   "title": "Convert with Image Web",
-  "message": "**Formats**",
+  "icon": "SF=photo.stack",
+  "message": "Output files are saved to the same folder as the original.",
   "button1text": "Convert",
   "button2text": "Cancel",
   "moveable": true,
-  "width": 420,
+  "width": 520,
+  "height": 700,
   "checkbox": [
-    {"label": "avif — Best compression (recommended)",   "checked": $(checked "avif"  "$SAVED_ALGOS")},
-    {"label": "webp — Wide browser support",             "checked": $(checked "webp"  "$SAVED_ALGOS")},
-    {"label": "jpg — Universal compatibility",           "checked": $(checked "jpg"   "$SAVED_ALGOS")},
-    {"label": "png — Lossless",                          "checked": $(checked "png"   "$SAVED_ALGOS")},
-    {"label": "tiff — Print / archival quality",         "checked": $(checked "tiff"  "$SAVED_ALGOS")},
-    {"label": "──────── Resolutions ────────", "checked": false, "disabled": true},
-    {"label": "PREV — 15p (tiny thumbnail)",             "checked": $(checked "PREV"  "$SAVED_RESS")},
-    {"label": "LD — 240p",                               "checked": $(checked "LD"    "$SAVED_RESS")},
-    {"label": "SD — 480p",                               "checked": $(checked "SD"    "$SAVED_RESS")},
-    {"label": "HD — 720p",                               "checked": $(checked "HD"    "$SAVED_RESS")},
-    {"label": "FHD — 1080p (default)",                   "checked": $(checked "FHD"   "$SAVED_RESS")},
-    {"label": "QHD — 1440p",                             "checked": $(checked "QHD"   "$SAVED_RESS")},
-    {"label": "UHD — 4K",                                "checked": $(checked "UHD"   "$SAVED_RESS")},
-    {"label": "2UHD — 8K",                               "checked": $(checked "2UHD"  "$SAVED_RESS")},
-    {"label": "──────── Options ────────", "checked": false, "disabled": true},
-    {"label": "Save as Default",                         "checked": false}
+    {"label": "Formats",                     "checked": false, "disabled": true},
+    {"label": "avif — best compression",     "checked": $(checked "avif"  "$SAVED_ALGOS")},
+    {"label": "webp — wide browser support", "checked": $(checked "webp"  "$SAVED_ALGOS")},
+    {"label": "jpg — universal",             "checked": $(checked "jpg"   "$SAVED_ALGOS")},
+    {"label": "png — lossless",              "checked": $(checked "png"   "$SAVED_ALGOS")},
+    {"label": "tiff — archival",             "checked": $(checked "tiff"  "$SAVED_ALGOS")},
+    {"label": "Resolutions",                 "checked": false, "disabled": true},
+    {"label": "PREV — 15p thumbnail",        "checked": $(checked "PREV"  "$SAVED_RESS")},
+    {"label": "LD — 240p",                   "checked": $(checked "LD"    "$SAVED_RESS")},
+    {"label": "SD — 480p",                   "checked": $(checked "SD"    "$SAVED_RESS")},
+    {"label": "HD — 720p",                   "checked": $(checked "HD"    "$SAVED_RESS")},
+    {"label": "FHD — 1080p",                 "checked": $(checked "FHD"   "$SAVED_RESS")},
+    {"label": "QHD — 1440p",                 "checked": $(checked "QHD"   "$SAVED_RESS")},
+    {"label": "UHD — 4K",                    "checked": $(checked "UHD"   "$SAVED_RESS")},
+    {"label": "2UHD — 8K",                   "checked": $(checked "2UHD"  "$SAVED_RESS")},
+    {"label": "Options",                     "checked": false, "disabled": true},
+    {"label": "Save as Default",             "checked": false}
   ]
 }
 EOF
@@ -69,21 +77,21 @@ import sys, json
 data = json.load(sys.stdin)
 
 algo_map = {
-    "avif — Best compression (recommended)": "avif",
-    "webp — Wide browser support":           "webp",
-    "jpg — Universal compatibility":          "jpg",
-    "png — Lossless":                         "png",
-    "tiff — Print / archival quality":        "tiff",
+    "avif — best compression":     "avif",
+    "webp — wide browser support": "webp",
+    "jpg — universal":             "jpg",
+    "png — lossless":              "png",
+    "tiff — archival":             "tiff",
 }
 res_map = {
-    "PREV — 15p (tiny thumbnail)": "PREV",
-    "LD — 240p":                   "LD",
-    "SD — 480p":                   "SD",
-    "HD — 720p":                   "HD",
-    "FHD — 1080p (default)":       "FHD",
-    "QHD — 1440p":                 "QHD",
-    "UHD — 4K":                    "UHD",
-    "2UHD — 8K":                   "2UHD",
+    "PREV — 15p thumbnail": "PREV",
+    "LD — 240p":            "LD",
+    "SD — 480p":            "SD",
+    "HD — 720p":            "HD",
+    "FHD — 1080p":          "FHD",
+    "QHD — 1440p":          "QHD",
+    "UHD — 4K":             "UHD",
+    "2UHD — 8K":            "2UHD",
 }
 
 algos, ress, save = [], [], False
@@ -118,8 +126,9 @@ SAVE=$(echo "$PARSED"  | sed -n '3p')
 run_convert() {
     local file="$1"
     [[ -z "$file" ]] && return
-    local ext="${file##*.}"
-    case "${ext,,}" in
+    local ext
+    ext=$(echo "${file##*.}" | tr '[:upper:]' '[:lower:]')
+    case "$ext" in
         png|jpg|jpeg|webp|avif|gif|tiff) ;;
         *) return ;;
     esac

@@ -11,6 +11,8 @@ echo
 
 rm -rf "$SERVICES_DIR/Convert with Image Web.workflow"
 rm -rf "$SERVICES_DIR/Convert with Image Web Options.workflow"
+rm -rf "$SERVICES_DIR/Quick Compress with imageWeb.workflow"
+rm -rf "$SERVICES_DIR/Compress with imageWeb.workflow"
 echo "✓ Quick Actions removed"
 
 rm -rf "$SCRIPTS_DEST"

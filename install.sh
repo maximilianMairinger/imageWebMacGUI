@@ -48,12 +48,14 @@ echo "✓ Scripts installed to $SCRIPTS_DEST"
 
 mkdir -p "$SERVICES_DIR"
 
-# Remove old versions first
+# Remove old versions (both old and new names) first
 rm -rf "$SERVICES_DIR/Convert with Image Web.workflow"
 rm -rf "$SERVICES_DIR/Convert with Image Web Options.workflow"
+rm -rf "$SERVICES_DIR/Quick Compress with imageWeb.workflow"
+rm -rf "$SERVICES_DIR/Compress with imageWeb.workflow"
 
-cp -R "$REPO_DIR/workflows/Convert with Image Web.workflow"         "$SERVICES_DIR/"
-cp -R "$REPO_DIR/workflows/Convert with Image Web Options.workflow" "$SERVICES_DIR/"
+cp -R "$REPO_DIR/workflows/Quick Compress with imageWeb.workflow" "$SERVICES_DIR/"
+cp -R "$REPO_DIR/workflows/Compress with imageWeb.workflow"       "$SERVICES_DIR/"
 echo "✓ Quick Actions installed to $SERVICES_DIR"
 
 # ── 4. Register services ──────────────────────────────────────────────────────
@@ -74,12 +76,12 @@ echo
 echo "HOW TO USE:"
 echo "  1. Right-click any image file in Finder"
 echo "  2. Choose 'Quick Actions' from the menu"
-echo "  3. Select 'Convert with Image Web'         (uses saved defaults)"
-echo "     or  'Convert with Image Web Options'    (shows format/resolution picker)"
+echo "  3. Select 'imageWeb quick'  (uses saved defaults)"
+echo "     or  'imageWeb modal'    (shows format/resolution picker)"
 echo
 echo "If Quick Actions don't appear:"
 echo "  → System Settings → Privacy & Security → Extensions → Finder"
-echo "  → Make sure both 'Convert with Image Web' actions are enabled"
+echo "  → Make sure both imageWeb actions are enabled"
 echo
 echo "To reset defaults:"
 echo "  defaults delete com.imageweb.prefs"

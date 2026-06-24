@@ -17,8 +17,19 @@ Adds two entries under **Quick Actions** when you right-click any image in Finde
 - [SwiftDialog](https://github.com/swiftDialog/swiftDialog) — dialog UI engine
 - [image-web](https://www.npmjs.com/package/image-web) — conversion CLI
 
+
 ## Install
 
+**via Homebrew (recommended):**
+```bash
+brew tap maximilianMairinger/imageweb
+brew install imageweb-macos
+imageweb-setup
+```
+
+Homebrew handles [SwiftDialog](https://github.com/swiftDialog/swiftDialog) and [image-web](https://www.npmjs.com/package/image-web) automatically.
+
+**via curl:**
 ```bash
 brew install swiftdialog
 npm install -g image-web

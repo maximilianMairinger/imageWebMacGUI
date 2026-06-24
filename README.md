@@ -23,6 +23,7 @@ Adds two entries under **Quick Actions** when you right-click any image in Finde
 **via Homebrew (recommended):**
 ```bash
 brew tap maximilianMairinger/imageweb
+brew trust maximilianMairinger/imageweb
 brew install imageweb-macos
 imageweb-setup
 ```

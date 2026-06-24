@@ -5,6 +5,17 @@
 set -e
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# When piped through bash (curl | bash), $0 is /dev/stdin and the repo files
+# aren't on disk. Download the tarball and re-exec from there.
+if [[ ! -d "$REPO_DIR/scripts" || ! -d "$REPO_DIR/workflows" ]]; then
+    TMPDIR_DL=$(mktemp -d)
+    echo "Downloading imageWebMacGUI..."
+    curl -fsSL https://github.com/maximilianMairinger/imageWebMacGUI/archive/refs/heads/master.tar.gz \
+        | tar xz -C "$TMPDIR_DL"
+    trap "rm -rf '$TMPDIR_DL'" EXIT
+    exec bash "$TMPDIR_DL/imageWebMacGUI-master/install.sh"
+fi
 SCRIPTS_DEST="$HOME/.local/share/imageweb"
 SERVICES_DIR="$HOME/Library/Services"
 

@@ -1,62 +1,75 @@
 # imageWeb — Finder Quick Actions
 
-Right-click context menu integration for [image-web](https://github.com/your/image-web), a bulk image conversion CLI tool.
+Right-click context menu integration for [image-web](https://www.npmjs.com/package/image-web), a bulk image conversion and optimisation CLI.
 
-## What it adds
+Adds two entries under **Quick Actions** when you right-click any image in Finder:
 
-Two entries appear under **Quick Actions** when you right-click any image in Finder:
-
-| Menu item | Behaviour |
+| Action | Behaviour |
 |---|---|
-| **Quick: Compress with imageWeb** | Converts immediately using your saved defaults |
-| **Compress with imageWeb** | Opens a dialog to pick formats, resolutions, and output folder |
+| **imageWeb quick** | Converts immediately using your saved defaults |
+| **imageWeb modal** | Opens a dialog to pick formats, resolutions, and output folder |
+
+![macOS Finder Quick Actions menu showing imageWeb quick and imageWeb modal]()
 
 ## Requirements
 
 - macOS 12 or later
-- [SwiftDialog](https://github.com/swiftDialog/swiftDialog) — the dialog UI engine
-- [image-web](https://www.npmjs.com/package/image-web) — the conversion CLI
+- [SwiftDialog](https://github.com/swiftDialog/swiftDialog) — dialog UI engine
+- [image-web](https://www.npmjs.com/package/image-web) — conversion CLI
 
 ## Install
 
 ```bash
-# 1. Install SwiftDialog (if not already installed)
 brew install swiftdialog
-
-# 2. Install image-web (if not already installed)
 npm install -g image-web
-
-# 3. Clone this repo and run the installer
-git clone <repo-url>
-cd imageWebMacGUI
-bash install.sh
+curl -fsSL https://raw.githubusercontent.com/maximilianMairinger/imageWebMacGUI/master/install.sh | bash
 ```
 
 The installer copies the Quick Actions to `~/Library/Services/` and refreshes Finder automatically.
 
-If the menu items don't appear after install:
-
-> **System Settings → Privacy & Security → Extensions → Finder**
-> Enable both imageWeb actions.
+> **Quick Actions not showing up?**
+> System Settings → Privacy & Security → Extensions → Finder → enable both imageWeb actions.
 
 ## Uninstall
 
 ```bash
-bash uninstall.sh
+curl -fsSL https://raw.githubusercontent.com/maximilianMairinger/imageWebMacGUI/master/uninstall.sh | bash
 ```
 
-Removes all Quick Actions, scripts, and saved preferences.
+## Usage
 
-## Saved preferences
+### imageWeb quick
 
-When you click **Compress** with *Save as Default* toggled on, your chosen formats and resolution are saved to `~/Library/Preferences/com.imageweb.prefs.plist` and used by all future conversions (including the quick action).
+Right-click any image → Quick Actions → **imageWeb quick**.
 
-To reset to defaults:
+Converts immediately to your saved formats and resolution. Output lands next to the source file.
 
+### imageWeb modal
+
+Right-click any image → Quick Actions → **imageWeb modal**.
+
+Opens a dialog where you can choose:
+
+- **Output folder** — defaults to the source file's folder, editable
+- **Formats** — avif, webp, jpg, png, tiff (pick any combination)
+- **Resolutions** — LD 240p through 2UHD 8K
+- **Save as Default** — saves your current selection for future quick actions
+- **Replace existing files** — overrides output files that already exist
+
+## Defaults
+
+Saved defaults are stored in `~/Library/Preferences/com.imageweb.prefs.plist` (standard macOS user preferences, machine-local).
+
+Check current defaults:
+```bash
+defaults read com.imageweb.prefs
+```
+
+Reset to built-in defaults (webp, QHD):
 ```bash
 defaults delete com.imageweb.prefs
 ```
 
-## Supported image formats (input)
+## Supported input formats
 
 `png` `jpg` `jpeg` `webp` `avif` `gif` `tiff`
